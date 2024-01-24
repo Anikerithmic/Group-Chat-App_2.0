@@ -51,24 +51,34 @@ button:hover {
     background-color: rgba(17, 107, 143, 0.877);
 }
 
-input:focus{
+input:focus {
     border: 1px solid rgb(192, 192, 192);
 }
-.member{
+
+.member {
     font-size: 0.8rem;
     margin-top: 1.4rem;
     color: #636363;
 }
-.member a{
+
+.member a {
     color: reg(10, 107, 143);
     text-decoration: none;
 }
-.recover{
+
+.recover {
     text-align: right;
     font-size: 0.7rem;
     margin: 0.3rem 1.4rem 0 0;
 }
-.recover a{
+
+.recover a {
     text-decoration: none;
     columns: #464647;
+}
+
+.error-message {
+    color: rgb(196, 9, 9);
+    font-size: 0.8rem;
+    margin-top: -0.35rem;
 }
