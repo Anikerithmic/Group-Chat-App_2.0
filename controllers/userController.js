@@ -30,3 +30,7 @@ exports.postSignup = async (req, res, next) => {
         res.status(500).json({ success: false, error: err.message });
     }
 };
+
+exports.getLogin = (req, res, next) => {
+    res.sendFile(path.join(__dirname, '..', 'views', 'login.html'));
+}
