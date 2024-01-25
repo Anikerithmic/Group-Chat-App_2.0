@@ -2,8 +2,9 @@ require('dotenv').config();
 const express = require('express');
 const port = 5000;
 const path = require('path');
-const userRoute = require('./routes/userRoute');
 const sequelize = require('./util/database');
+const userRoute = require('./routes/userRoute');
+const chatRoute = require('./routes/chatRoute');
 
 const app = express();
 
@@ -13,6 +14,7 @@ app.use(express.static('views'));
 app.use(express.json());
 
 app.use(userRoute);
+app.use(chatRoute);
 
 
 sequelize

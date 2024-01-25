@@ -19,6 +19,9 @@ async function onSubmit(e) {
         const response = await axios.post("http://localhost:5000/login", userData);
         console.log('Login successful:', response.data);
 
+        if(response.data.success == true){
+            window.location.href = './chat';
+        }
 
         alert(response.data.message);
         localStorage.setItem('token', response.data.token);
