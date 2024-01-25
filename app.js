@@ -1,9 +1,9 @@
+require('dotenv').config();
 const express = require('express');
 const port = 5000;
 const path = require('path');
 const userRoute = require('./routes/userRoute');
 const sequelize = require('./util/database');
-require('dotenv').config();
 
 const app = express();
 

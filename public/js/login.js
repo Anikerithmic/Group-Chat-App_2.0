@@ -6,7 +6,6 @@ const loginButton = document.querySelector('#login-button');
 const errorMessageContainer = document.querySelector('#error-message-container');
 
 loginForm.addEventListener('submit', onSubmit);
-forgotPasswordButton.addEventListener('click', forgotPassword)
 
 async function onSubmit(e) {
     e.preventDefault();
@@ -22,7 +21,8 @@ async function onSubmit(e) {
 
 
         alert(response.data.message);
-        window.location.href = '';
+        localStorage.setItem('token', response.data.token);
+        window.location.href = '../';
 
         clearInputs();
         errorMessageContainer.textContent = '';
@@ -36,9 +36,9 @@ async function onSubmit(e) {
     }
 }
 
-function forgotPassword() {
-        window.location.href = '/forgotpassword';
-}
+forgotPasswordButton.addEventListener('click',async ()=>{
+            window.location.href='/forgotpassword'
+        });
 
 function clearInputs() {
     inputEmail.value = '';
