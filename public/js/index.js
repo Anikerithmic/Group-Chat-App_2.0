@@ -21,6 +21,22 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+    const fetchRealtimeMessages = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            const response = await axios.get('/chat/message', { headers: { "Authorization": token } });
+            const messages = response.data;
+            messages.forEach(message => {
+                if (message.id > lastMessageId) {
+                    renderMessage(message);
+                    lastMessageId = message.id;
+                }
+            });
+        } catch (error) {
+            console.error('Error fetching messages:', error);
+        }
+    };
+
     // Function to render a single message
     const renderMessage = (message) => {
         const messageItem = document.createElement('li');
@@ -61,5 +77,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     fetchMessages();
+    setInterval(fetchRealtimeMessages, 1000);
+
 });
 
