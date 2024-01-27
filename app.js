@@ -3,6 +3,8 @@ const express = require('express');
 const port = 5000;
 const path = require('path');
 const sequelize = require('./util/database');
+const User = require('./models/User');
+const Message = require('./models/Message');
 const userRoute = require('./routes/userRoute');
 const chatRoute = require('./routes/chatRoute');
 
@@ -16,6 +18,9 @@ app.use(express.json());
 app.use(userRoute);
 app.use(chatRoute);
 
+
+User.hasMany(Message);
+Message.belongsTo(User);
 
 sequelize
     .sync()

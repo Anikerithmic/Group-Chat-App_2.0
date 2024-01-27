@@ -38,7 +38,7 @@ exports.getLogin = (req, res, next) => {
     res.sendFile(path.join(__dirname, '..', 'views', 'login.html'));
 }
 
-exports.postSignup = async (req, res, next) => {
+exports.postLogin = async (req, res, next) => {
     try{
         const {email, password} = req.body;
         const existingUser = await User.findOne({ where: { email } });

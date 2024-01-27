@@ -19,13 +19,13 @@ async function onSubmit(e) {
         const response = await axios.post("http://localhost:5000/login", userData);
         console.log('Login successful:', response.data);
 
-        if(response.data.success == true){
+        if (response.data.success == true) {
+            alert(response.data.message);
+            localStorage.setItem('token', response.data.token);
             window.location.href = './chat';
         }
 
-        alert(response.data.message);
-        localStorage.setItem('token', response.data.token);
-        window.location.href = '../';
+
 
         clearInputs();
         errorMessageContainer.textContent = '';
@@ -39,9 +39,9 @@ async function onSubmit(e) {
     }
 }
 
-forgotPasswordButton.addEventListener('click',async ()=>{
-            window.location.href='/forgotpassword'
-        });
+forgotPasswordButton.addEventListener('click', async () => {
+    window.location.href = '/forgotpassword'
+});
 
 function clearInputs() {
     inputEmail.value = '';
