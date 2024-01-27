@@ -3,25 +3,26 @@ document.addEventListener('DOMContentLoaded', () => {
     const messageForm = document.querySelector('.conversation-form');
     const messageInput = document.querySelector('.conversation-form-input');
     const conversationWrapper = document.querySelector('.conversation-wrapper');
+    let lastMessageId = null;
+
+    // const fetchMessages = async () => {
+    //     try {
+    //         const token = localStorage.getItem('token');
+    //         const response = await axios.get('/chat/message', { headers: { "Authorization": token } });
+    //         const messages = response.data;
+    //         if (Array.isArray(messages)) {
+    //             messages.forEach(message => {
+    //                 renderMessage(message);
+    //             });
+    //         } else {
+    //             console.error('Invalid messages data format:', messages);
+    //         }
+    //     } catch (error) {
+    //         console.error('Error fetching messages:', error);
+    //     }
+    // };
 
     const fetchMessages = async () => {
-        try {
-            const token = localStorage.getItem('token');
-            const response = await axios.get('/chat/message', { headers: { "Authorization": token } });
-            const messages = response.data;
-            if (Array.isArray(messages)) {
-                messages.forEach(message => {
-                    renderMessage(message);
-                });
-            } else {
-                console.error('Invalid messages data format:', messages);
-            }
-        } catch (error) {
-            console.error('Error fetching messages:', error);
-        }
-    };
-
-    const fetchRealtimeMessages = async () => {
         try {
             const token = localStorage.getItem('token');
             const response = await axios.get('/chat/message', { headers: { "Authorization": token } });
@@ -53,6 +54,7 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
         `;
         conversationWrapper.appendChild(messageItem);
+        
     };
 
     const sendMessage = async (message) => {
@@ -61,6 +63,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await axios.post('http://localhost:5000/message', message, { headers: { "Authorization": token } });
             const newMessage = response.data.newMessage;
             renderMessage(newMessage);
+            
         } catch (error) {
             console.error('Error sending message:', error);
         }
@@ -76,8 +79,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    fetchMessages();
-    setInterval(fetchRealtimeMessages, 1000);
+    // fetchMessages();
+    setInterval(fetchMessages, 1000);
 
 });
 
