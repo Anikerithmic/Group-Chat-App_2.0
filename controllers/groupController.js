@@ -1,0 +1,166 @@
+const path = require('path');
+const User = require('../models/User');
+const Message = require('../models/Message');
+const Group = require('../models/Group');
+const GroupHandler = require('../models/GroupHandler');
+const { Op } = require('sequelize');
+const jwt = require('jsonwebtoken');
+
+
+exports.getGroupChat = (req, res, next) => {
+    res.sendFile(path.join(__dirname, '..', 'views', 'chat.html'));
+}
+
+exports.createGroup = async (req, res, next) => {
+    try {
+        const gName = req.body.groupName;
+        const groupData = await Group.create({
+            groupName: gName
+        });
+
+        await GroupHandler.create({
+            groupId: groupData.id,
+            userId: req.user.id
+        });
+
+        res.status(201).json({ success: true, message: 'Group created successfully', groupData });
+    }
+    catch (error) {
+        console.log('Error creating group:', error)
+        return res.status(500).json({ error: error });
+    }
+}
+
+exports.getUserGroups = async (req, res, next) => {
+    try {
+        // Finding all groups associated with the current user using GroupHandler
+        const totalUserGroups = await GroupHandler.findAll({ where: { userId: req.user.id } });
+
+        // Extracting the groupIds from totalUserGroups in an array
+        const groupIds = totalUserGroups.map(group => group.groupId);
+
+        // Finding all groups with ids in groupIds array
+        const groups = await Group.findAll({ where: { id: groupIds } });
+
+        res.status(200).json({ groups });
+    } catch (err) {
+        console.error('Error fetching groups:', err);
+        res.status(500).json({ error: err.message });
+    }
+};
+
+exports.createGroupMessage = async (req, res, next) => {
+    try {
+        const { message } = req.body;
+        const groupId = req.params.groupId;
+
+        const messageData = await Message.create({
+            userId: req.user.id,
+            message: message,
+            groupId: groupId
+        });
+
+        if (!messageData) {
+            throw new Error('Failed to create new message.');
+        }
+
+        res.status(201).json({ success: true, newMessage: messageData });
+    } catch (err) {
+        console.error('Error creating message:', err);
+        res.status(500).json({ error: err.message });
+    }
+};
+
+exports.getGroupMessage = async (req, res, next) => {
+    try {
+        const messages = await Message.findAll({ where: { groupId: req.params.groupId } });
+
+        res.status(200).json({ messages });
+    } catch (error) {
+        console.error('Error fetching messages:', error);
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// exports.getGroupNewMessages = async (req, res, next) => {
+//     try {
+//         const groupId = req.param.gid;
+//         const lastMessageId = req.query.lastMessageId;
+
+//         const newMessages = await Message.findAll({
+//             where: {
+//                 groupId: groupId,
+//                 id: { [Op.gt]: lastMessageId }
+//             }
+//         });
+
+//         res.status(200).json({ newMessages });
+//     } catch (error) {
+//         console.error('Error fetching new messages:', error);
+//         res.status(500).json({ error: error.message });
+//     }
+// };
+
+
+exports.addUserToGroup = async (req, res, next) => {
+    try {
+        const { userid } = req.body;
+        const groupId = req.params.groupId;
+
+        // Check if the user already exists in the group
+        const existingUser = await GroupHandler.findOne({ where: { groupId: groupId, userId: userid } });
+        if (existingUser) {
+            return res.status(400).json({ success: false, error: "User already exists in the group." });
+        }
+
+        const addedUser = await GroupHandler.create({
+            groupId: groupId,
+            userId: userid
+        });
+
+        res.status(200).json({ success: true, addedUser });
+    } catch (error) {
+        console.error('Error adding user to group:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+};
+
+
+exports.removeUserFromGroup = async (req, res, next) => {
+    try {
+        const { userid } = req.body;
+        const groupId = req.params.groupId;
+
+        const fetchUser = await GroupHandler.findOne({ where: { groupId: groupId, userId: userid } });
+        if (!fetchUser) {
+            throw new Error("User or Group dosen't exists.");
+        }
+
+        await GroupHandler.destroy({
+            where: {
+                groupId: groupId,
+                userId: userid
+            }
+        });
+
+        res.status(200).json({ success: true, message: 'User removed from group successfully' });
+    } catch (error) {
+        console.error('Error removing user from group:', error);
+        res.status(500).json({ error: error.message });
+    }
+};
+
+exports.deleteGroup = async (req, res, next) => {
+    try {
+        const groupId = req.params.groupId;
+
+        await GroupHandler.destroy({ where: { groupId: groupId } });
+        await Group.destroy({ where: { id: groupId } });
+
+        res.status(200).json({ success: true, message: 'Group successfully deleted' });
+    } catch (error) {
+        console.error('Error deleting group:', error);
+        res.status(500).json({ error: error.message });
+    }
+};
+

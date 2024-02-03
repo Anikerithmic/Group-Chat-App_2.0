@@ -2,11 +2,26 @@
 const messageForm = document.querySelector('.conversation-form');
 const messageInput = document.querySelector('.conversation-form-input');
 const conversationWrapper = document.querySelector('.conversation-wrapper');
+const createGroupButton = document.querySelector('.create-group-button');
+const addUserButton = document.querySelector('.add-user-button');
+const removeUserButton = document.querySelector('.remove-user-button');
+const deleteGroupButton = document.querySelector('.delete-group-button');
+const openChatButton = document.querySelector('.open-chat-button');
+const groupForm = document.querySelector('.group-form');
+const groupNameInput = document.querySelector('.group-name');
+const groupSubmitButton = document.querySelector('.group-submit-button');
 let lastMessageId = null;
 
+const baseURL = 'http://localhost:5000';
 
-document.addEventListener('DOMContentLoaded', () => { // on domContentloaded initialy it fetches all the messags form the db
-    fetchMessages();
+
+document.addEventListener('DOMContentLoaded', async () => { // on domContentloaded initialy it fetches all the messags form the db
+    conversationWrapper.innerHTML = '';
+    messageForm.style.visibility = 'hidden';
+    // Load user groups and friends
+    await fetchUserFriends()
+    await fetchUserGroups();
+    // fetchMessages();
 
     // // Loading messages from local storage on page load
     // const storedMessages = localStorage.getItem('messages');
@@ -17,19 +32,100 @@ document.addEventListener('DOMContentLoaded', () => { // on domContentloaded ini
     //     fetchNewMessages();
     // };
 });
+document.addEventListener('click', async(event) => {
+    const target = event.target;
+    const token = localStorage.getItem('token');
+    const chatType = target.parentElement.parentElement.dataset.chatType;
+    const chatId = target.parentElement.parentElement.dataset.chatId;
+
+    // on click eventListener for open-chat button
+    if (target.classList.contains('open-chat-button')) {
+
+        // Store the chatType and chatId for later use when the message form is submitted
+        messageForm.dataset.chatType = chatType;
+        messageForm.dataset.chatId = chatId;
+    }
+
+    //on click eventListener for add user button button
+    if (target.classList.contains('add-user-button')) {
+        const storedUsers = JSON.parse(localStorage.getItem('Users'));
+        console.log(storedUsers);
+        const userid = prompt("Enter user id:");
+    
+        try {
+            const response = await axios.post(`${baseURL}/group/${chatId}/add-user`, { userid }, { headers: { "Authorization": token } });
+    
+            if (response.data.success === true) {
+                alert("User added to the group successfully.");
+            } else {
+                alert(response.data.error);
+            }
+        } catch (error) {
+            console.error('Error adding user to group:', error);
+            if (error.response && error.response.data && error.response.data.error) {
+                alert(error.response.data.error);
+            } else {
+                alert("An error occurred while adding the user to the group.");
+            }
+        }
+    }
+    // on click eventlistener for remove user button
+    if (target.classList.contains('remove-user-button')) {
+        const userid = prompt("Enter user id to remove:");
+    
+        try {
+            const response = await axios.post(`${baseURL}/group/${chatId}/remove-user`, { userid }, { headers: { "Authorization": token } });
+    
+            if (response.data.success === true) {
+                alert("User removed.");
+            } else {
+                alert(response.data.error);
+            }
+        } catch (error) {
+            console.error('Error removing user from group:', error);
+            if (error.response && error.response.data && error.response.data.error) {
+                alert(error.response.data.error);
+            } else {
+                alert("An error occurred while removing the user from the group.");
+            }
+        }
+    }
+
+    //on click eventListener for delete group button
+    if (target.classList.contains('delete-group-button')) {
+        const token = localStorage.getItem('token');
+        try {
+            const response = await axios.post(`${baseURL}/group/${chatId}/delete-group`,{}, { headers: { "Authorization": token } });
+    
+            if (response.data.success === true) {
+                alert("Group deleted.");
+            } else {
+                alert(response.data.error);
+            }
+        } catch (error) {
+            console.error('Error deleting group:', error);
+            if (error.response && error.response.data && error.response.data.error) {
+                alert(error.response.data.error);
+            } else {
+                alert("An error occurred while deleting group.");
+            }
+        }
+    }
+});
 
 messageForm.addEventListener('submit', async (event) => {
     event.preventDefault();
     const message = messageInput.value.trim();
+    const chatType = messageForm.dataset.chatType;
+    const chatId = messageForm.dataset.chatId;
+
     if (message !== '') {
-        // Sending message to the server on submit button
         try {
             const token = localStorage.getItem('token');
-            console.log('msggg:', message);
-            const response = await axios.post('/message', { message }, { headers: { "Authorization": token } });
+            const url = chatType === 'group' ? `${baseURL}/group/${chatId}/message/create` : `${baseURL}/message`;
+            const response = await axios.post(url, { message }, { headers: { "Authorization": token } });
 
             renderMessage(response.data.newMessage);
-
         } catch (error) {
             console.error('Error sending message:', error);
         }
@@ -55,64 +151,230 @@ const renderMessage = (message) => {
     lastMessageId = message.id;
 };
 
-const fetchMessages = async () => {
-    try {
-        const token = localStorage.getItem('token');
-        const response = await axios.get(`/chat/message`, { headers: { "Authorization": token } });
+// const fetchMessages = async () => {
+//     try {
+//         const token = localStorage.getItem('token');
+//         const response = await axios.get(`${baseURL}/chat/message`, { headers: { "Authorization": token } });
 
-        if (response.data.messages && Array.isArray(response.data.messages)) {
-            if (response.data.messages.length > 0) {
+//         if (response.data.messages && Array.isArray(response.data.messages)) {
+//             if (response.data.messages.length > 0) {
 
-                response.data.messages.forEach(message => {
-                    renderMessage(message);
-                });
+//                 response.data.messages.forEach(message => {
+//                     renderMessage(message);
+//                 });
 
-                // Stores messages in localstorage 
-                localStorage.setItem('messages', JSON.stringify(response.data.messages));
-            } else {
-                console.log("No messages to fetch");
-            }
-        } else {
-            console.log("Invalid or empty message data in the response");
+//                 localStorage.setItem('messages', JSON.stringify(response.data.messages));
+//             } else {
+//                 console.log("No messages to fetch");
+//             }
+//         } else {
+//             console.log("Invalid or empty message data in the response");
+
+//         }
+//     } catch (error) {
+//         console.error('Error fetching messages:', error);
+//     }
+// };
+
+// const fetchNewMessages = async () => {
+//     try {
+//         if (lastMessageId === undefined) {
+//             lastMessageId = 0;
+//         }
+//         const token = localStorage.getItem('token');
+//         const response = await axios.get(`${baseURL}/chat/newMessages?id=${lastMessageId}`, { headers: { "Authorization": token } });
+
+//         if (response.data.messages && response.data.messages.length > 0) {
+
+//             response.data.messages.forEach(message => {
+//                 renderMessage(message);
+//             });
+
+//             // Concatenating the new messages with old stored messages.
+//             let storedMessages = JSON.parse(localStorage.getItem('messages'));
+//             if (!Array.isArray(storedMessages)) {
+//                 storedMessages = [];
+//             }
+//             storedMessages = storedMessages.concat(response.data.messages);
+//             localStorage.setItem('messages', JSON.stringify(storedMessages));
+
+//             // Update lastMessageId if needed
+//             lastMessageId = response.data.messages[response.data.messages.length - 1].id;
+//         } else {
+//             console.log("No new messages");
+//         }
+//     } catch (error) {
+//         console.error('Error fetching new messages:', error);
+//     }
+// };
+
+// setInterval(fetchNewMessages, 1000);
+
+
+createGroupButton.addEventListener('click', async (event) => {
+    event.preventDefault();
+
+    groupForm.style.visibility = (groupForm.style.visibility === 'visible') ? 'hidden' : 'visible';
+
+    groupForm.addEventListener('submit', createGroup);
+})
+
+async function createGroup(e) {
+    e.preventDefault();
+
+    const groupName = groupNameInput.value.trim();
+    console.log('Group  Name::>>', groupName)
+
+    if (groupName !== '') {
+
+        try {
+
+            const token = localStorage.getItem('token');
+            conversationWrapper.innerHTML = '';
+            const groupResponse = await axios.post(`${baseURL}/createGroup`, { groupName }, { headers: { "Authorization": token } });
+            groupForm.style.visibility = (groupForm.style.visibility === 'visible') ? 'hidden' : 'visible';
 
         }
-    } catch (error) {
-        console.error('Error fetching messages:', error);
+        catch (error) {
+            console.error('Error creating group:', error);
+        }
+        groupNameInput.value = '';
     }
-};
+}
 
-const fetchNewMessages = async () => {
+// Fetch user groups from the server
+async function fetchUserGroups() {
     try {
-        if (lastMessageId === undefined) {
-            lastMessageId = 0;
-        }
         const token = localStorage.getItem('token');
-        const response = await axios.get(`/chat/newMessages?id=${lastMessageId}`, { headers: { "Authorization": token } });
+        const response = await axios.get(`${baseURL}/userGroups`, { headers: { "Authorization": token } });
+        localStorage.setItem('Groups', JSON.stringify(response.data.groups));
+        renderGroups(response.data.groups);
+        
+    } catch (error) {
+        console.error('Error fetching user groups:', error);
+    }
+}
 
-        if (response.data.messages && response.data.messages.length > 0) {
-    
+// Fetch user friends from the server
+async function fetchUserFriends() {
+    try {
+        const token = localStorage.getItem('token');
+        const response = await axios.get(`${baseURL}/userFriends`, { headers: { "Authorization": token } });
+        localStorage.setItem('Users', JSON.stringify(response.data.users));
+        // Render user friends in the sidebar
+        renderUsers(response.data.users);
+        
+
+    } catch (error) {
+        console.error('Error fetching user friends:', error);
+    }
+}
+
+// Render user groups in the sidebar
+function renderGroups(groups) {
+    const userGroupsContainer = document.querySelector('.groups-container');
+    userGroupsContainer.innerHTML = '';
+
+    groups.forEach(group => {
+        const groupElement = document.createElement('div');
+        groupElement.classList.add('.user-group');
+        groupElement.dataset.chatType = 'group';
+        groupElement.dataset.chatId = group.id;
+        groupElement.innerHTML = `
+            <div class="user-group-name">${group.id}.${group.groupName}</div>
+            <div class="user-group-toggle-button">
+            <button class="open-chat-button">Open Chat</button>
+            <button class="add-user-button">Add User</button>
+            <button class="remove-user-button">Remove User</button>
+            <button class="delete-group-button">Delete Group</button>
+                
+            </div>
+        `;
+        userGroupsContainer.appendChild(groupElement);
+
+
+        attachGroupEventListeners(groupElement, group);
+    });
+}
+
+function attachGroupEventListeners(groupOrUserElement, group) {
+    const openChatButton = groupOrUserElement.querySelector('.open-chat-button');
+
+    openChatButton.addEventListener('click', async (event) => {
+        event.preventDefault();
+        const chatType = groupOrUserElement.dataset.chatType;
+        const chatId = groupOrUserElement.dataset.chatId;
+        console.log('chatType:', chatType);
+        console.log('chatId:', chatId);
+
+        if (chatType === 'user') {
+            openChatForUser(chatId);
+        } else if (chatType === 'group') {
+            openChatForGroup(chatId);
+        }
+    });
+}
+
+
+// Render user friends in the sidebar
+function renderUsers(users) {
+    const userFriendsContainer = document.querySelector('.user-friends-container');
+    userFriendsContainer.innerHTML = '';
+
+    users.forEach(user => {
+        const userElement = document.createElement('div');
+        userElement.classList.add('.user-friend');
+        userElement.dataset.chatType = 'user';
+        userElement.dataset.chatId = user.id;
+        userElement.innerHTML = `
+            <div class="user-friend-name">${user.id}.${user.name}</div>
+            <div class="user-friend-toggle-button">
+                <button class="open-chat-button">Open Chat</button>
+            </div>
+        `;
+        userFriendsContainer.appendChild(userElement);
+
+        // Attaching event listeners for group actions buttons
+        attachGroupEventListeners(userElement, user);
+    });
+}
+
+
+async function openChatForUser(userId) {
+conversationWrapper.innerHTML = '';
+messageForm.style.visibility = 'visible';
+    try {
+        const token = localStorage.getItem('token');
+        const response = await axios.get(`${baseURL}/user/${userId}/messages`, { headers: { "Authorization": token } });
+
+        if (response.data && Array.isArray(response.data.messages)) {
+            conversationWrapper.innerHTML = ''; 
             response.data.messages.forEach(message => {
                 renderMessage(message);
             });
-
-            // Concatenating the new messages with old stored messages.
-            let storedMessages = JSON.parse(localStorage.getItem('messages'));
-            if (!Array.isArray(storedMessages)) {
-                storedMessages = [];
-            }
-            storedMessages = storedMessages.concat(response.data.messages);
-            localStorage.setItem('messages', JSON.stringify(storedMessages));
-
-            // Update lastMessageId if needed
-            lastMessageId = response.data.messages[response.data.messages.length - 1].id;
-        } else {
-            console.log("No new messages");
         }
     } catch (error) {
-        console.error('Error fetching new messages:', error);
+        console.error('Error fetching messages for user:', error);
     }
-};
+}
 
-setInterval(fetchNewMessages, 1000);
+// Function to open chat for group with given ID
 
+async function openChatForGroup(groupId) {
+    conversationWrapper.innerHTML = '';
+    messageForm.style.visibility = 'visible';
+    try {
+        const token = localStorage.getItem('token');
+        const response = await axios.get(`${baseURL}/group/${groupId}/messages`, { headers: { "Authorization": token } });
+
+        if (response.data && Array.isArray(response.data.messages)) {
+            conversationWrapper.innerHTML = '';
+            response.data.messages.forEach(message => {
+                renderMessage(message);
+            });
+        }
+    } catch (error) {
+        console.error('Error fetching messages for group:', error);
+    }
+}
 

@@ -10,20 +10,16 @@ exports.getChat = (req, res, next) => {
 exports.createMessage = async (req, res, next) => {
     try {
         const { message } = req.body;
-
         const messageData = await Message.create({
             userId: req.user.id,
             message: message
-
         });
         if (!messageData) {
             throw new Error('Failed to create new message.');
         }
-
         res.status(201).json({ success: true, newMessage: messageData });
 
     } catch (err) {
-
         console.log('Error creating message:', err)
         return res.status(500).json({ error: err });
     };
@@ -32,11 +28,9 @@ exports.getMessage = async (req, res, next) => {
     try {
         const messages = await Message.findAll({ where: { userId: req.user.id } });
 
-
         if (messages.length === 0) {
-            return res.json({messages:'no messages present'});
-        }else{
-
+            return res.json({ messages: 'no messages present' });
+        } else {
             res.json({ success: true, messages });
         }
 
@@ -54,19 +48,27 @@ exports.getNewMessages = async (req, res, next) => {
         console.log('lastMessageId>>:>>', lastMessageId);
 
         const messages = await Message.findAll({ where: { userId: req.user.id, id: { [Op.gt]: lastMessageId } } });
-        // console.log('newNew>>>',messages);
 
         if (messages.length !== 0) {
             return res.json({ success: true, messages });
         }
         else {
-            return res.json({  messages: []  });
+            return res.json({ messages: [] });
         }
-
-
     } catch (err) {
         console.error('Error fetching messages:', err);
         res.status(500).json({ error: err.message });
     }
 };
 
+exports.getUserFriends = async (req, res, next) => {
+    try {
+        // Find all users
+        const totalUsers = await User.findAll();
+
+        res.status(200).json({ users: totalUsers });
+    } catch (err) {
+        console.error('Error fetching users:', err);
+        res.status(500).json({ error: err.message });
+    }
+};

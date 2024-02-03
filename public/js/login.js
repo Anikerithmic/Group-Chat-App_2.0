@@ -22,7 +22,7 @@ async function onSubmit(e) {
         if (response.data.success == true) {
             alert(response.data.message);
             localStorage.setItem('token', response.data.token);
-            window.location.href = './chat';
+            window.location.href = './chat';  
         }
 
 
