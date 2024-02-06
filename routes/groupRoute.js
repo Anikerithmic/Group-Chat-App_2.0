@@ -20,6 +20,17 @@ router.post('/group/:groupId/remove-user', userAuthentication.authenticate, grou
 //route to delete the group.
 router.post('/group/:groupId/delete-group', userAuthentication.authenticate, groupController.deleteGroup);
 
+//route to fetch users of group.
+router.get('/group/:groupId/user-list', userAuthentication.authenticate, groupController.getGroupUserList);
+
+//route to fetch isAdmin user.
+router.get('/group/:groupId/is-admin', userAuthentication.authenticate, groupController.isAdmin);
+
+//route to fetch users of group.
+router.post('/group/:groupId/make-admin', userAuthentication.authenticate, groupController.makeUserAdmin);
+
+
+
 
 
 module.exports = router;

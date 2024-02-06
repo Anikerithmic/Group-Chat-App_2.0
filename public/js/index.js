@@ -10,6 +10,7 @@ const openChatButton = document.querySelector('.open-chat-button');
 const groupForm = document.querySelector('.group-form');
 const groupNameInput = document.querySelector('.group-name');
 const groupSubmitButton = document.querySelector('.group-submit-button');
+const groupUsersContainer = document.querySelector('.group-user-container');
 let lastMessageId = null;
 
 const baseURL = 'http://localhost:5000';
@@ -32,29 +33,86 @@ document.addEventListener('DOMContentLoaded', async () => { // on domContentload
     //     fetchNewMessages();
     // };
 });
-document.addEventListener('click', async(event) => {
+document.addEventListener('click', async (event) => {
     const target = event.target;
     const token = localStorage.getItem('token');
     const chatType = target.parentElement.parentElement.dataset.chatType;
     const chatId = target.parentElement.parentElement.dataset.chatId;
 
+
+    if (target.classList.contains('user-group-name')) {
+        const userGroupToggleButton = target.parentElement.querySelector('.user-group-toggle-button');
+        const chatId = target.parentElement.dataset.chatId;
+
+        if (userGroupToggleButton) {
+            userGroupToggleButton.style.display = (userGroupToggleButton.style.display === 'block') ? 'none' : 'block';
+        }
+
+        try {
+            const response = await axios.get(`${baseURL}/group/${chatId}/is-admin`, { headers: { "Authorization": token } });
+            if (response.data.isAdmin) {
+                target.parentElement.querySelector('.add-user-button').style.display = 'block';
+                target.parentElement.querySelector('.remove-user-button').style.display = 'block';
+                target.parentElement.querySelector('.make-admin-button').style.display = 'block';
+                target.parentElement.querySelector('.delete-group-button').style.display = 'block';
+            } else {
+                target.parentElement.querySelector('.add-user-button').style.display = 'none';
+                target.parentElement.querySelector('.remove-user-button').style.display = 'none';
+                target.parentElement.querySelector('.make-admin-button').style.display = 'none';
+                target.parentElement.querySelector('.delete-group-button').style.display = 'none';
+            }
+        } catch (error) {
+            console.error('Error checking if user is admin:', error);
+        }
+    }
+
+
     // on click eventListener for open-chat button
     if (target.classList.contains('open-chat-button')) {
 
-        // Store the chatType and chatId for later use when the message form is submitted
         messageForm.dataset.chatType = chatType;
         messageForm.dataset.chatId = chatId;
     }
+
+    //on click eventListener for user-list button
+    if (target.classList.contains('user-list-button')) {
+        const groupUserList = document.querySelector('.group-user-list');
+        groupUserList.innerHTML = '';
+
+        try {
+            const userListResponse = await axios.get(`${baseURL}/group/${chatId}/user-list`, { headers: { "Authorization": token } });
+            console.log('userLisy:>', userListResponse.data.groupUsers);
+
+            if (userListResponse.data.success === true) {
+                const storedUsers = JSON.parse(localStorage.getItem('Users'));
+                const userIds = userListResponse.data.groupUsers.map(user => user.userId);
+                const filteredUsers = storedUsers.filter(user => userIds.includes(user.id));
+                const userNames = filteredUsers.map(user => user.name);
+
+                userNames.forEach(userName => {
+                    const userNameElement = document.createElement('div');
+                    userNameElement.textContent = userName;
+                    groupUserList.appendChild(userNameElement);
+                });
+            } else {
+                console.log('Error: Unable to fetch user list');
+            }
+        } catch (error) {
+            console.error('Error fetching group users:', error);
+        }
+    }
+
+
 
     //on click eventListener for add user button button
     if (target.classList.contains('add-user-button')) {
         const storedUsers = JSON.parse(localStorage.getItem('Users'));
         console.log(storedUsers);
         const userid = prompt("Enter user id:");
-    
+
         try {
             const response = await axios.post(`${baseURL}/group/${chatId}/add-user`, { userid }, { headers: { "Authorization": token } });
-    
+
             if (response.data.success === true) {
                 alert("User added to the group successfully.");
             } else {
@@ -69,13 +127,14 @@ document.addEventListener('click', async(event) => {
             }
         }
     }
+
     // on click eventlistener for remove user button
     if (target.classList.contains('remove-user-button')) {
         const userid = prompt("Enter user id to remove:");
-    
+
         try {
             const response = await axios.post(`${baseURL}/group/${chatId}/remove-user`, { userid }, { headers: { "Authorization": token } });
-    
+
             if (response.data.success === true) {
                 alert("User removed.");
             } else {
@@ -95,8 +154,8 @@ document.addEventListener('click', async(event) => {
     if (target.classList.contains('delete-group-button')) {
         const token = localStorage.getItem('token');
         try {
-            const response = await axios.post(`${baseURL}/group/${chatId}/delete-group`,{}, { headers: { "Authorization": token } });
-    
+            const response = await axios.post(`${baseURL}/group/${chatId}/delete-group`, {}, { headers: { "Authorization": token } });
+
             if (response.data.success === true) {
                 alert("Group deleted.");
             } else {
@@ -111,6 +170,30 @@ document.addEventListener('click', async(event) => {
             }
         }
     }
+
+    if (target.classList.contains('make-admin-button')) {
+        const token = localStorage.getItem('token');
+        const userid = prompt("Enter user id:");
+        try {
+
+            const response = await axios.post(`${baseURL}/group/${chatId}/make-admin`, { userid }, { headers: { "Authorization": token } });
+
+            if (response.data.success === true) {
+                alert("User has been made admin.");
+
+            } else {
+                alert(response.data.error);
+            }
+        } catch (error) {
+            console.error('Error making user admin:', error);
+            if (error.response && error.response.data && error.response.data.error) {
+                alert(error.response.data.error);
+            } else {
+                alert("An error occurred while making the user admin.");
+            }
+        }
+    }
+
 });
 
 messageForm.addEventListener('submit', async (event) => {
@@ -247,9 +330,13 @@ async function fetchUserGroups() {
     try {
         const token = localStorage.getItem('token');
         const response = await axios.get(`${baseURL}/userGroups`, { headers: { "Authorization": token } });
+        console.log('FetcgesGroups:>', response.data.totalUserGroups);
+
         localStorage.setItem('Groups', JSON.stringify(response.data.groups));
-        renderGroups(response.data.groups);
-        
+        localStorage.setItem('UserGroupsInfo', JSON.stringify(response.data.totalUserGroups));
+
+        renderGroups(response.data.groups, response.data.totalUserGroups);
+
     } catch (error) {
         console.error('Error fetching user groups:', error);
     }
@@ -263,7 +350,7 @@ async function fetchUserFriends() {
         localStorage.setItem('Users', JSON.stringify(response.data.users));
         // Render user friends in the sidebar
         renderUsers(response.data.users);
-        
+
 
     } catch (error) {
         console.error('Error fetching user friends:', error);
@@ -271,7 +358,7 @@ async function fetchUserFriends() {
 }
 
 // Render user groups in the sidebar
-function renderGroups(groups) {
+function renderGroups(groups, userGroupsInfo) {
     const userGroupsContainer = document.querySelector('.groups-container');
     userGroupsContainer.innerHTML = '';
 
@@ -282,11 +369,13 @@ function renderGroups(groups) {
         groupElement.dataset.chatId = group.id;
         groupElement.innerHTML = `
             <div class="user-group-name">${group.id}.${group.groupName}</div>
-            <div class="user-group-toggle-button">
-            <button class="open-chat-button">Open Chat</button>
-            <button class="add-user-button">Add User</button>
-            <button class="remove-user-button">Remove User</button>
-            <button class="delete-group-button">Delete Group</button>
+            <div class="user-group-toggle-button" style="display: none;">
+                <button class="open-chat-button">Open Chat</button>
+                <button class="user-list-button">User list</button>
+                <button class="make-admin-button">Make Admin</button>
+                <button class="add-user-button">Add User</button>
+                <button class="remove-user-button">Remove User</button>
+                <button class="delete-group-button">Delete Group</button>
                 
             </div>
         `;
@@ -295,7 +384,10 @@ function renderGroups(groups) {
 
         attachGroupEventListeners(groupElement, group);
     });
+
 }
+
+
 
 function attachGroupEventListeners(groupOrUserElement, group) {
     const openChatButton = groupOrUserElement.querySelector('.open-chat-button');
@@ -341,14 +433,14 @@ function renderUsers(users) {
 
 
 async function openChatForUser(userId) {
-conversationWrapper.innerHTML = '';
-messageForm.style.visibility = 'visible';
+    conversationWrapper.innerHTML = '';
+    messageForm.style.visibility = 'visible';
     try {
         const token = localStorage.getItem('token');
         const response = await axios.get(`${baseURL}/user/${userId}/messages`, { headers: { "Authorization": token } });
 
         if (response.data && Array.isArray(response.data.messages)) {
-            conversationWrapper.innerHTML = ''; 
+            conversationWrapper.innerHTML = '';
             response.data.messages.forEach(message => {
                 renderMessage(message);
             });

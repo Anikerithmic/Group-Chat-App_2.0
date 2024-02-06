@@ -20,7 +20,8 @@ exports.createGroup = async (req, res, next) => {
 
         await GroupHandler.create({
             groupId: groupData.id,
-            userId: req.user.id
+            userId: req.user.id,
+            isAdmin: true
         });
 
         res.status(201).json({ success: true, message: 'Group created successfully', groupData });
@@ -42,7 +43,7 @@ exports.getUserGroups = async (req, res, next) => {
         // Finding all groups with ids in groupIds array
         const groups = await Group.findAll({ where: { id: groupIds } });
 
-        res.status(200).json({ groups });
+        res.status(200).json({ groups, totalUserGroups });
     } catch (err) {
         console.error('Error fetching groups:', err);
         res.status(500).json({ error: err.message });
@@ -163,4 +164,67 @@ exports.deleteGroup = async (req, res, next) => {
         res.status(500).json({ error: error.message });
     }
 };
+exports.getGroupUserList = async (req, res, next) => {
+    try {
+        const groupId = req.params.groupId;
+
+        const groupUsers = await GroupHandler.findAll({ where: { groupId: groupId } });
+
+        res.status(200).json({ success: true, groupUsers});
+    } catch (error) {
+        console.error('Error getting group users:', error);
+        res.status(500).json({ error: error });
+    }
+};
+
+
+exports.isAdmin = async (req, res, next) => {
+    try {
+        const groupId = req.params.groupId;
+
+        console.log('groupId:', groupId)
+        console.log('userId:', req.user.id)
+
+        const groupHandler = await GroupHandler.findOne({ where: { groupId, userId: req.user.id } });
+
+        if (!groupHandler) {
+            return res.status(404).json({ success: false, error: 'User not found in the group' });
+        }
+
+        // Checkig if the user is an admin
+        if (groupHandler.isAdmin) {
+            res.status(200).json({ success: true, isAdmin: true, message: 'User is an admin' });
+        } else {
+            res.status(200).json({ success: true, isAdmin: false, message: 'User is not an admin' });
+        }
+    } catch (error) {
+        console.error('Error fetching isAdmin:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+};
+
+
+
+
+exports.makeUserAdmin = async (req, res, next) => {
+    try {
+        const groupId = req.params.groupId;
+        const userId = req.body.userid; 
+
+        const groupHandler = await GroupHandler.findOne({ where: { groupId, userId } });
+
+        if (!groupHandler) {
+            return res.status(404).json({ success: false, error: 'User not found in the group' });
+        }
+        groupHandler.isAdmin = true;
+        await groupHandler.save();
+
+        res.status(200).json({ success: true, message: 'User has been made admin' });
+    } catch (error) {
+        console.error('Error making user admin:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+};
+
+
 
